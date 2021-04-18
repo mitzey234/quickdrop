@@ -51,6 +51,8 @@
     "ip": "^1.1.5",
     "lz4": "^0.6.5",
     "nano-time": "^1.0.0",
+    "nano-timer": "^1.0.1",
+    "nanotimer": "^0.3.15",
     "systeminformation": "^5.6.10",
     "ws": "^7.4.4"
   },

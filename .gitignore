@@ -8,3 +8,9 @@ client/src/data/transfers.json
 client/out/
 
 client/package-lock.json
+
+SignalingServer/keys.json
+
+SignalingServer/serverLog.json
+
+VerificationServer/keys.json

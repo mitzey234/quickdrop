@@ -33,6 +33,6 @@ The verification server is responsible for keeping the node network maintained a
 Start the server with `node verificationServer.js` which is located in `./VerificationServer`
 
 # Issues
-If you have any issues feel free to post them. Please remember there is only so much that can be done when you are on restricted networks. I might soon release a tool that can tell you your network type and help in troubleshooting any P2P issues you might be having. IF your run into errors or crashes please provide me with screenshots or console output. The best way to capture consoel output is to run the electron app through CMD / Terminal or by launching the app with `npm start` instead of the compiled version. Please note this repo will only be maintained as often as I can be available.
+If you have any issues feel free to post them. Please remember there is only so much that can be done when you are on restricted networks. I might soon release a tool that can tell you your network type and help in troubleshooting any P2P issues you might be having. If you run into errors or crashes please provide me with screenshots or console output as well as what you did to reach that state. The best way to capture console output is to run the electron app through CMD / Terminal or by launching the app with `npm start` instead of the compiled version. Please note this repo will only be maintained as often as I can be available.
 
 If you want to help with this project you may contact me at alex1001(at)live(dot)ca

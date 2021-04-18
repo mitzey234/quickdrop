@@ -6,3 +6,5 @@ client/src/data/serverLog.json
 client/src/data/transfers.json
 
 client/out/
+
+client/package-lock.json

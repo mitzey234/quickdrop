@@ -13,7 +13,10 @@ var identifier;
 var publicIdent;
 
 //We use a serverLog file to keep track of host and verification data
-if (fs.existsSync(serverLogPath)) {
+if (!fs.existsSync(serverLogPath)) {
+  if (!fs.existsSync(path.join(__dirname, "../data"))) {
+    fs.mkdirSync(path.join(__dirname, "../data"));
+  }
   try {
     fs.writeFileSync(serverLogPath, "{}");
   } catch (e) {

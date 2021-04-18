@@ -294,7 +294,7 @@ function UDPPingTest (server) {
   server.UDPping = p;
 }
 
-//Search for peers code
+//Search for peers code 
 function searchForPeers () {
   console.log("Searching for peers");
   servers = {}

@@ -245,6 +245,7 @@ function UDPPingTest (server) {
   }.bind(p);
   p.complete = function (resp) {
     if (debug) console.log("UDP Complete:", resp);
+    if (this.UDPping == null) return;
     this.UDPping.stop();
     this.ping = avg(this.UDPping.arrs);
     this.UDPping.resp = resp;

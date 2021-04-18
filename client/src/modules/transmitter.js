@@ -173,10 +173,12 @@ function dataFlow () {
 }
 
 var tos = 0; //Timeouts per interval
-var sends = 0; //Sends 
+var sends = 0; //Sends
 var acks = 0; //Acknowledgements
 var dataRate = 0; //Bytes per second
 var totalSent = 0;
+
+//test
 
 var ratios = [];
 function avg (arr) {

@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <script src="jquery.min.js"></script>
+    <script src="fontawesome-free-5.11.2-web/js/all.js"></script>
+    <link rel="stylesheet" type="text/css" href="quickshare.css">
+    <link rel="stylesheet" type="text/css" href="bootstrap.css">
+    <link rel="stylesheet" type="text/css" href="jquery.dataTables.css">
+    <script src="jquery.js"></script>
+    <script src="popper.min.js"></script>
+    <script src="bootstrap.js"></script>
+    <title>Quickshare</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline'">
+  </head>
+  <body>
+    <div class="modal fade" id="sendFileModal" tabindex="-1" aria-labelledby="sendFileModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="exampleModalLiveLabel">Send File</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">×</span>
+            </button>
+          </div>
+          <div class="modal-body">
+          <div class="input-group mb-3">
+            <div class="input-group-prepend">
+              <span class="input-group-text" id="basic-addon1">Destination ID</span>
+            </div>
+            <input id="inputDestID" type="text" class="form-control" placeholder="Machine UID" aria-label="Machine UID" aria-describedby="basic-addon1">
+          </div>
+          <div class="input-group mb-3">
+            <div class="input-group-prepend">
+              <span class="input-group-text" id="inputGroupFileAddon01">Upload</span>
+            </div>
+            <div class="custom-file">
+              <input type="file" class="custom-file-input" id="inputGroupFile01" multiple="false" aria-describedby="inputGroupFileAddon01">
+              <label class="custom-file-label" for="inputGroupFile01" id="fileNameBox">Choose file</label>
+            </div>
+          </div>
+          <div class="input-group mb-3">
+            <div class="input-group-prepend">
+              <label class="input-group-text" for="inputGroupSelect01">Compression</label>
+            </div>
+            <select class="custom-select" id="inputGroupSelect01">
+              <option value="2">High Compression</option>
+              <option value="1" style="display: none;">Low Compression</option>
+              <option value="0" selected="">None</option>
+            </select>
+          </div>
+          <div class="input-group mb-3">
+            <div class="input-group-prepend">
+              <label class="input-group-text" for="inputGroupSelect02">Encryption</label>
+            </div>
+            <select class="custom-select" id="inputGroupSelect02">
+              <option value="1">AES 256 - Ecliptic Curve (secp224r1)</option>
+              <option value="0" selected="">None</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="sendButton" onClick="sendFile()">Send</button>
+        </div>
+        </div>
+      </div>
+    </div>
+    <div class="background blur"></div>
+
+    <div class="sidenav">
+      <a id="navhome" class="" reveal="home" onClick="tabChange(this);" style="display: none;"><i class="fas fa-network-wired"></i> Connections</a>
+      <a id="navtransfers" class="" reveal="transfers" onClick="tabChange(this);"><i class="far fa-file"></i><span>Active Transfers</span></a>
+      <hr class="nav-divider">
+
+      <div id="sideNav"></div>
+
+      <div class="sidenavMenu">
+        <div id="copyuuidButton" class="copyuuidButton disabled" onclick="setUUIDToClipboard();">Copy UID</div>
+        <div class="sendButton sideNavMenuButton" onClick="showSendModal()"><i class="fas fa-file-upload"></i></div>
+        <div class="settingsButton sideNavMenuButton"><i class="fas fa-cog"></i></div>
+      </div>
+    </div>
+
+    <div id="mainPages" class="main">
+      <div id="home" class="tab-content hidden" style="display: none;">
+        <div class="container-fluid home-rows">
+          <div class="row row-head">
+            <div class="col-sm-1 plus"><i class="fas fa-plus" aria-hidden="true"></i></div>
+            <div class="col-sm-3">Name</div>
+            <div class="col-sm-4">UUID / IP</div>
+            <div class="col-sm-2 status">Status</div>
+            <div class="col-sm-2">Actions</div>
+          </div>
+          <div class="row row-entry">
+            <div class="col-sm-1 plus"></div>
+            <div class="col-sm-3 name">
+              <span class="username">Alexander Young</span>
+              <br>
+              <span class="devicename">ALEXANDERGAMEPC</span>
+            </div>
+            <div class="col-sm-4 uuid">87a8fca9-d591-5b60-858d-f7968be599fa</div>
+            <div class="col-sm-2 status">Pending..</div>
+            <div class="col-sm-2 actions">
+              <div class="actionButton acceptButton"><i class="fas fa-check"></i></div>
+          	  <div class="actionButton ignoreButton"><i class="fas fa-times"></i></div>
+          	  <div class="actionButton blockButton"><i class="fas fa-ban"></i></div>
+            </div>
+          </div>
+          <div class="noConn" id="noConnectionsInprog">
+            <div>No Connections in Progress</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="transfers" class="tab-content hidden">
+        <div class="transferToolbar">
+          <div class="toolButton" id="tablePause" onClick="tableTriggerPause()"><i class="fas fa-pause"></i> Pause</div>
+          <div class="toolButton disabled" id="tableResume" onClick="tableTriggerResume()"><i class="fas fa-play"></i> Resume</div>
+          <div class="toolButton" id="tableCancel" onClick="tableTriggerCancel()"><i class="fas fa-ban"></i> Cancel</div>
+          <div class="toolButton" id="tableDelete" onClick="tableTriggerDelete()"><i class="fas fa-trash-alt"></i> Delete</div>
+          <div class="ml-auto d-inline-flex duStatus">
+            <div class="download" id="totalDownload">Download: 0B/s</div>
+            <div class="upload" id="totalUpload">Upload: 0B/s</div>
+          </div>
+        </div>
+        <div class="container-fluid transfer-rows" id="transferRows" style="">
+          <div class="row row-head">
+            <div class="col-sm-1 plus">
+              <label class="container">
+                <input id="selectAllCheck" type="checkbox">
+                <span class="checkmark"></span>
+              </label>
+            </div>
+            <div class="col-sm-2">File Name</div>
+            <div class="col-sm-1">Type</div>
+            <div class="col-sm-2">Partner UUID</div>
+            <div class="col-sm-2">Status</div>
+            <div class="col-sm-1">Size</div>
+            <div class="col-sm-3">Progress</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="89rwjief" class="tab-content hidden">
+        <div class="transfer-statbar">
+          <div class="transferStatus">
+            <div class="selfName">Connection:</div>
+            <div class="ping" style="display: none;">&lt;-25ms-&gt;</div>
+            <div class="lds-ellipsis" data-toggle="tooltip" data-placement="bottom" title="Signalling..">
+              <div></div>
+              <div></div>
+              <div></div>
+              <div></div>
+            </div>
+            <div class="conErr" style="display: none;"><i class="fas fa-times"></i></div>
+          </div>
+          <div class="d-inline-flex duStatus">
+            <div class="download">Download: 6.2MB/s</div>
+            <div class="upload">Upload: 256KB/s</div>
+          </div>
+        </div>
+        <div class="transferTable">
+          <div class="container-fluid transfer-rows" id="tt89rwjief">
+            <div class="row row-head">
+              <div class="col-sm-3">File Name</div>
+              <div class="col-sm-1">Type</div>
+              <div class="col-sm-2">Status</div>
+              <div class="col-sm-1">Size</div>
+              <div class="col-sm-3">Progress</div>
+              <div class="col-sm-2">Actions</div>
+            </div>
+            <div class="row row-entry">
+              <div class="col-sm-3 filename" ident="name">testFile.txt</div>
+              <div class="col-sm-1 tType" ident="type">Up</div>
+              <div class="col-sm-2 tType" ident="status">
+                <span>Starting..</span>
+              </div>
+              <div class="col-sm-1 size" data-toggle="tooltip" data-placement="bottom" title="24.5MB Uploaded" ident="size">53.2MB</div>
+              <div class="col-sm-3 prog" ident="progress">
+                <div class="progress" data-toggle="tooltip" data-placement="bottom" title="" data-original-title="17s Remaining">
+                  <span>55% - 680KB/s</span>
+                  <div class="progress-bar" role="progressbar" style="width: 50%;"></div>
+                </div>
+              </div>
+              <div class="col-sm-2 actions">
+                <div class="actionButton acceptButton resume disabled"><i class="fas fa-play"></i></div>
+                <div class="actionButton pauseButton"><i class="fas fa-pause"></i></div>
+            	  <div class="actionButton blockButton cancel"><i class="fas fa-times"></i></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </body>
+  <script type="text/javascript" charset="utf8" src="jquery.dataTables.js"></script>
+  <script src="row().show().js"></script>
+  <script>
+  $("#noConnectionsInprog")
+  .css("display", "flex")
+  .hide();
+
+  var ignorePageIds = ["transfers", "home"];
+
+  document.getElementById("inputDestID").addEventListener('input', inputHandler);
+  document.getElementById("inputDestID").addEventListener('propertychange', inputHandler);
+
+  document.getElementById("inputGroupFile01").addEventListener('input', inputHandler);
+  document.getElementById("inputGroupFile01").addEventListener('propertychange', inputHandler);
+
+  document.getElementById("inputGroupSelect01").addEventListener('input', inputHandler);
+  document.getElementById("inputGroupSelect01").addEventListener('propertychange', inputHandler);
+
+  document.getElementById("inputGroupSelect02").addEventListener('input', inputHandler);
+  document.getElementById("inputGroupSelect02").addEventListener('propertychange', inputHandler);
+
+  document.getElementById("selectAllCheck").addEventListener('input', selectAll);
+  document.getElementById("selectAllCheck").addEventListener('propertychange', selectAll);
+
+  document.getElementById("tablePause").classList.add("disabled");
+  document.getElementById("tableResume").classList.add("disabled");
+  document.getElementById("tableCancel").classList.add("disabled");
+  document.getElementById("tableDelete").classList.add("disabled");
+
+  function inputHandler () {
+    var dest = document.getElementById("inputDestID").value;
+    var file = document.getElementById("inputGroupFile01").files;
+    var comp = document.getElementById("inputGroupSelect01").value;
+    var enc = document.getElementById("inputGroupSelect02").value;
+    if (file.length == 1) {
+      document.getElementById("fileNameBox").innerText = file[0].name;
+    } else if (file.length > 1) {
+      document.getElementById("fileNameBox").innerText = file.length + " Files Selected";
+    } else {
+      document.getElementById("fileNameBox").innerText = "Choose file";
+    }
+    if ((dest == "" || dest == null) || (file == null || file.length == 0) || (comp == "" || comp == null) || (enc == "" || enc == null)) {
+      document.getElementById("sendButton").setAttribute("disabled", "");
+    } else {
+      document.getElementById("sendButton").removeAttribute("disabled");
+    }
+  }
+
+  function sendFile () {
+    var dest = document.getElementById("inputDestID").value;
+    var file = document.getElementById("inputGroupFile01").files;
+    var comp = document.getElementById("inputGroupSelect01").value;
+    var enc = document.getElementById("inputGroupSelect02").value;
+    if ((dest == "" || dest == null) || (file == null || file.length == 0) || (comp == "" || comp == null) || (enc == "" || enc == null)) {
+      return;
+    }
+    for (var i = 0; i < file.length; i++) {
+      ipc.send("sendFile", {dest: dest, path: file[i].path, comp: comp, enc: enc});
+    }
+    document.getElementById("inputDestID").value = "";
+    document.getElementById("inputGroupFile01").value = "";
+    document.getElementById("fileNameBox").innerText = "Choose file";
+    document.getElementById("inputGroupSelect01").value = 0;
+    document.getElementById("inputGroupSelect02").value = 0;
+    $('#sendFileModal').modal('hide');
+  }
+
+  function showSendModal () {
+    if (!ignorePageIds.includes(activeTab)) document.getElementById("inputDestID").value = activeTab;
+    else document.getElementById("inputDestID").value = "";
+    document.getElementById("sendButton").setAttribute("disabled", "");
+    $('#sendFileModal').modal('show');
+  }
+
+  function selectAll () {
+    var value = document.getElementById("selectAllCheck").checked;
+    var table = document.getElementById("transferRows").children;
+    for (i in table) {
+      var entry = table[i];
+      if (entry.classList != null && entry.classList.contains("row-entry")) {
+        entry.children[0].children[0].children[0].checked = value;
+      } else {
+        continue;
+      }
+    }
+    checkBox();
+  }
+
+  function checkBox () {
+    var resume, pause, cancel, del = false;
+    var table = document.getElementById("transferRows").children;
+    for (i in table) {
+      var entry = table[i];
+      if (entry.classList != null && entry.classList.contains("row-entry") && entry.children[0].children[0].children[0].checked) {
+        var state = entry.getAttribute("state");
+        if (state != null) {
+          if (btnStates[state][1] == true) resume = true;
+          if (btnStates[state][2] == true) pause = true;
+          if (btnStates[state][3] == true && state != 7) cancel = true;
+          if (state == 7 || state == 6) del = true;
+        } else continue;
+      } else {
+        continue;
+      }
+    }
+
+    if (resume == true) document.getElementById("tableResume").classList.remove("disabled");
+    else document.getElementById("tableResume").classList.add("disabled");
+
+    if (pause == true) document.getElementById("tablePause").classList.remove("disabled");
+    else document.getElementById("tablePause").classList.add("disabled");
+
+    if (cancel == true) document.getElementById("tableCancel").classList.remove("disabled");
+    else document.getElementById("tableCancel").classList.add("disabled");
+
+    if (del == true) document.getElementById("tableDelete").classList.remove("disabled");
+    else document.getElementById("tableDelete").classList.add("disabled");
+
+  }
+
+  function tableTriggerResume () {
+    var table = document.getElementById("transferRows").children;
+    for (i in table) {
+      var entry = table[i];
+      if (entry.classList != null && entry.classList.contains("row-entry") && entry.children[0].children[0].children[0].checked) {
+        var mid = entry.getAttribute("id").replace("ate", "");
+        resume(mid);
+      }
+    }
+    checkBox();
+  }
+
+  function tableTriggerPause () {
+    var table = document.getElementById("transferRows").children;
+    for (i in table) {
+      var entry = table[i];
+      if (entry.classList != null && entry.classList.contains("row-entry") && entry.children[0].children[0].children[0].checked) {
+        var mid = entry.getAttribute("id").replace("ate", "");
+        pause(mid);
+      }
+    }
+    checkBox();
+  }
+
+  function tableTriggerCancel () {
+    var table = document.getElementById("transferRows").children;
+    for (i in table) {
+      var entry = table[i];
+      if (entry.classList != null && entry.classList.contains("row-entry") && entry.children[0].children[0].children[0].checked) {
+        var mid = entry.getAttribute("id").replace("ate", "");
+        cancel(mid);
+      }
+    }
+    checkBox();
+  }
+
+  function tableTriggerDelete () {
+    var table = document.getElementById("transferRows").children;
+    for (i in table) {
+      var entry = table[i];
+      if (entry.classList != null && entry.classList.contains("row-entry") && entry.children[0].children[0].children[0].checked) {
+        var mid = entry.getAttribute("id").replace("ate", "");
+        del(mid);
+      }
+    }
+    checkBox();
+  }
+
+  checkBox();
+
+  var activeTab;
+
+  var startAt = "transfers";
+
+  var tabSpeed = 100;
+
+  var uuid;
+
+  var clipboard;
+
+  var ignoreTransferStates = [7];
+
+  $(document).ready(onload);
+
+  function createPeer (id) {
+    createPeerPage(id);
+    createPeerNav(id);
+  }
+
+  function updatePeerObj (peer) {
+    if (document.getElementById(peer.machineID) == null || document.getElementById("nav"+peer.machineID) == null) createPeer(peer.machineID);
+    if (document.getElementById(peer.machineID) == null || document.getElementById("nav"+peer.machineID) == null) return;
+    if (peer.info != null && peer.info.username != null) document.getElementById("nav"+peer.machineID).children[0].innerText = peer.info.username;
+    if (peer.info != null && peer.info.hostname != null) document.getElementById("nav"+peer.machineID).children[1].innerText = peer.info.hostname;
+  }
+
+  function updatePeer (peer, state) {
+    if (peer.machineID == null) return;
+    if (document.getElementById(peer.machineID) == null || document.getElementById("nav"+peer.machineID) == null) createPeer(peer.machineID);
+    updatePeerObj(peer);
+    var page = document.getElementById(peer.machineID);
+    page.children[0].children[0].children[1].setAttribute("style", "display: none;");
+    page.children[0].children[0].children[2].setAttribute("style", "");
+    page.children[0].children[0].children[2].setAttribute("data-original-title", state);
+    page.children[0].children[0].children[3].setAttribute("style", "display: none;");
+  }
+
+  function peerConnected (peer) {
+    var page = document.getElementById(peer.machineID);
+    page.children[0].children[0].children[1].setAttribute("style", "");
+    page.children[0].children[0].children[2].setAttribute("style", "display: none;");
+    page.children[0].children[0].children[2].setAttribute("data-original-title", "Connected");
+    page.children[0].children[0].children[3].setAttribute("style", "display: none;");
+  }
+
+  function peerDisconnected (peer) {
+    var page = document.getElementById(peer.machineID);
+    page.children[0].children[0].children[1].setAttribute("style", "display: none;");
+    page.children[0].children[0].children[2].setAttribute("data-original-title", "Disonnected");
+    page.children[0].children[0].children[2].setAttribute("style", "display: none;");
+    page.children[0].children[0].children[3].setAttribute("style", "");
+    if (peer.transfers.length == 0) {
+      $( "#nav"+peer.machineID ).remove();
+      $( "#"+peer.machineID ).remove();
+      if (activeTab == peer.machineID) tabChange(document.getElementById("navtransfers"));
+    }
+  }
+
+  function updatePeerPing (peer, ping) {
+    if (peer.machineID == null) return;
+    if (document.getElementById(peer.machineID) == null || document.getElementById("nav"+peer.machineID) == null) createPeer(peer.machineID);
+    var page = document.getElementById(peer.machineID);
+    if (peer.ready && peer.peerReady && page != null) {
+      page.children[0].children[0].children[1].setAttribute("style", "");
+      page.children[0].children[0].children[2].setAttribute("style", "display: none;");
+      page.children[0].children[0].children[2].setAttribute("data-original-title", "Connected");
+      page.children[0].children[0].children[3].setAttribute("style", "display: none;");
+    }
+    updatePeerObj(peer);
+    page.children[0].children[0].children[1].innerText = ping+"ms";
+
+  }
+
+  function createPeerPage (id) {
+    if (document.getElementById(id) != null) return;
+    var mainPages = document.getElementById("mainPages");
+
+    var content = document.createElement("div");
+    content.setAttribute("id", id);
+    content.classList.add("tab-content", "hidden");
+
+    var statbarCont = document.createElement("div");
+    statbarCont.classList.add("transfer-statbar");
+
+    var transferStatusCont = document.createElement("div");
+    transferStatusCont.classList.add("transferStatus");
+
+    var statTitle = document.createElement("div");
+    statTitle.classList.add("selfName");
+    statTitle.innerText = "Connection:";
+    transferStatusCont.appendChild(statTitle);
+
+    var pingstat = document.createElement("div");
+    pingstat.classList.add("ping");
+    pingstat.setAttribute("style", "display: none;");
+    pingstat.innerText = "-1ms";
+    transferStatusCont.appendChild(pingstat);
+
+    var statAnim = document.createElement("div");
+    statAnim.classList.add("lds-ellipsis");
+    statAnim.setAttribute("data-toggle", "tooltip");
+    statAnim.setAttribute("data-placement", "bottom");
+    statAnim.setAttribute("title", "Wait");
+    statAnim.setAttribute("style", "display: none;");
+    for (var i = 0; i < 4; i++) {
+      var blankDiv = document.createElement("div");
+      statAnim.appendChild(blankDiv);
+    }
+    transferStatusCont.appendChild(statAnim);
+
+    var conErr = document.createElement("div");
+    conErr.classList.add("conErr");
+    conErr.setAttribute("style", "display: none;");
+    var errIcon = document.createElement("i");
+    errIcon.classList.add("fas", "fa-times");
+    conErr.appendChild(errIcon);
+    transferStatusCont.appendChild(conErr);
+
+    statbarCont.appendChild(transferStatusCont);
+
+    var speedStats = document.createElement("div");
+    speedStats.classList.add("d-inline-flex", "duStatus");
+    var download = document.createElement("div");
+    download.classList.add("download");
+    download.innerText = "Download: 0B/s";
+    download.setAttribute("id", "td"+id);
+    speedStats.appendChild(download);
+    var upload = document.createElement("div");
+    upload.classList.add("upload");
+    upload.innerText = "Upload: 0B/s";
+    upload.setAttribute("id", "tu"+id);
+    speedStats.appendChild(upload);
+    statbarCont.appendChild(speedStats);
+
+    content.appendChild(statbarCont);
+
+    var transferTableCont = document.createElement("div");
+    transferTableCont.classList.add("transferTable");
+    var transferTable = document.createElement("div");
+    transferTable.classList.add("container-fluid", "transfer-rows");
+    transferTable.setAttribute("id", "ptt"+id);
+    var tableHead = document.createElement("div");
+    tableHead.classList.add("row", "row-head");
+
+    var name = document.createElement("div");
+    name.classList.add("col-sm-3");
+    name.innerText = "File Name";
+    tableHead.appendChild(name);
+
+    var type = document.createElement("div");
+    type.classList.add("col-sm-1");
+    type.innerText = "Type";
+    tableHead.appendChild(type);
+
+    var status = document.createElement("div");
+    status.classList.add("col-sm-2");
+    status.innerText = "Status";
+    tableHead.appendChild(status);
+
+    var size = document.createElement("div");
+    size.classList.add("col-sm-1");
+    size.innerText = "Size";
+    tableHead.appendChild(size);
+
+    var progress = document.createElement("div");
+    progress.classList.add("col-sm-3");
+    progress.innerText = "Progress";
+    tableHead.appendChild(progress);
+
+    var actions = document.createElement("div");
+    actions.classList.add("col-sm-2");
+    actions.innerText = "Actions";
+    tableHead.appendChild(actions);
+
+    transferTable.appendChild(tableHead);
+
+    transferTableCont.appendChild(transferTable);
+    content.appendChild(transferTableCont);
+
+    mainPages.appendChild(content);
+    $('[data-toggle="tooltip"]').tooltip()
+  }
+
+  function createPeerNav (id) {
+    if (document.getElementById("nav"+id) != null) return;
+    var navs = document.getElementById("sideNav");
+
+    var nav = document.createElement("a");
+    nav.setAttribute("id", "nav"+id);
+    nav.setAttribute("reveal", id);
+    nav.setAttribute("onClick", "tabChange(this);");
+
+    var cliUsername = document.createElement("span");
+    cliUsername.classList.add("cliUsername");
+    cliUsername.innerText = "Loading...";
+    nav.appendChild(cliUsername);
+
+    var cliSystemName = document.createElement("span");
+    cliSystemName.classList.add("cliSystemName");
+    cliSystemName.innerText = id;
+    nav.appendChild(cliSystemName);
+
+    var cliTransferBadge = document.createElement("span");
+    cliTransferBadge.setAttribute("id", "navBadge"+id);
+    cliTransferBadge.classList.add("badge", "badge-warning", "cliTransferBadge");
+    cliTransferBadge.innerText = "0";
+    nav.appendChild(cliTransferBadge);
+
+    navs.appendChild(nav);
+
+  }
+
+  //peer transfer entry
+  function createPTE (transfer) {
+    var machineID;
+    if (document.getElementById("pte"+transfer.id) != null || ignoreTransferStates.includes(transfer.state)) return;
+    if (transfer.type == 0) machineID = "destination";
+    else if (transfer.type == 1) machineID = "source";
+    if (document.getElementById("ptt"+transfer[machineID]) == null) createPeer(transfer[machineID]);
+    var table = document.getElementById("ptt"+transfer[machineID]);
+
+    var rowEntry = document.createElement("div");
+    rowEntry.classList.add("row", "row-entry");
+    rowEntry.setAttribute("id", "pte"+transfer.id);
+
+    var name = document.createElement("div");
+    name.classList.add("col-sm-3", "filename")
+    name.setAttribute("ident", "name");
+    name.innerText = transfer.name;
+    rowEntry.appendChild(name);
+
+    var type = document.createElement("div");
+    type.classList.add("col-sm-1", "tType")
+    type.setAttribute("ident", "type");
+    type.innerText = transfer.type == 0 ? "Upload" : "Download";
+    rowEntry.appendChild(type);
+
+    var status = document.createElement("div");
+    status.classList.add("col-sm-2", "tType")
+    status.setAttribute("ident", "status");
+    var statusSpan = document.createElement("span");
+    statusSpan.innerText = translateStatus(transfer.state);
+    status.appendChild(statusSpan);
+    rowEntry.appendChild(status);
+
+    var size = document.createElement("div");
+    size.classList.add("col-sm-1", "size")
+    size.setAttribute("ident", "size");
+    size.setAttribute("data-toggle", "tooltip");
+    size.setAttribute("data-placement", "bottom");
+    size.setAttribute("data-original-title", "0 MB Uploaded");
+    size.innerText = generateSize(transfer.size);
+    rowEntry.appendChild(size);
+
+    var progressCont = document.createElement("div");
+    progressCont.classList.add("col-sm-3", "prog")
+    progressCont.setAttribute("ident", "progress");
+    var progress = document.createElement("div");
+    progress.classList.add("progress");
+    progress.setAttribute("data-toggle", "tooltip");
+    progress.setAttribute("data-placement", "bottom");
+    progress.setAttribute("data-original-title", "Estimating Time..");
+    var progText = document.createElement("span");
+    progText.innerText = "0% - 0B/s";
+    progress.appendChild(progText);
+    var bar = document.createElement("div");
+    bar.classList.add("progress-bar")
+    bar.setAttribute("role", "progressbar");
+    bar.setAttribute("style", "width: 0%;");
+    progress.appendChild(bar);
+    progressCont.appendChild(progress);
+    rowEntry.appendChild(progressCont);
+
+    var actions = document.createElement("div");
+    actions.classList.add("col-sm-2", "actions")
+
+    var acceptBTN = document.createElement("div");
+    acceptBTN.classList.add("actionButton", "acceptButton");
+    acceptBTN.setAttribute("onClick", "accept('"+transfer.id+"')");
+    var acceptIcon = document.createElement("i");
+    acceptIcon.classList.add("fas", "fa-check");
+    acceptBTN.appendChild(acceptIcon);
+    actions.appendChild(acceptBTN);
+
+    var resumeBTN = document.createElement("div");
+    resumeBTN.classList.add("actionButton", "resumeButton", "disabled");
+    resumeBTN.setAttribute("onClick", "resume('"+transfer.id+"')");
+    var resumeIcon = document.createElement("i");
+    resumeIcon.classList.add("fas", "fa-play");
+    resumeBTN.appendChild(resumeIcon);
+    actions.appendChild(resumeBTN);
+
+    var pauseBTN = document.createElement("div");
+    pauseBTN.classList.add("actionButton", "pauseButton", "disabled");
+    pauseBTN.setAttribute("onClick", "pause('"+transfer.id+"')");
+    var pauseIcon = document.createElement("i");
+    pauseIcon.classList.add("fas", "fa-pause");
+    pauseBTN.appendChild(pauseIcon);
+    actions.appendChild(pauseBTN);
+
+    var blockBTN = document.createElement("div");
+    blockBTN.classList.add("actionButton", "blockButton");
+    blockBTN.setAttribute("onClick", "cancel('"+transfer.id+"')");
+    var blockIcon = document.createElement("i");
+    blockIcon.classList.add("fas", "fa-times");
+    blockBTN.appendChild(blockIcon);
+    actions.appendChild(blockBTN);
+
+    rowEntry.appendChild(actions);
+    table.appendChild(rowEntry);
+    updatePTE(transfer);
+    $('[data-toggle="tooltip"]').tooltip()
+  }
+
+  function accept (transferID) {
+    ipc.send("accept", transferID);
+  }
+
+  function resume (transferID) {
+    ipc.send("resume", transferID);
+  }
+
+  function pause (transferID) {
+    ipc.send("pause", transferID);
+  }
+
+  function cancel (transferID) {
+    ipc.send("cancel", transferID);
+  }
+
+  function del (transferID) {
+    ipc.send("delete", transferID);
+  }
+
+  function updatePTE (transfer) {
+    var entry = document.getElementById("pte"+transfer.id);
+    if (transfer.state != null) entry.children[2].children[0].innerText = translateStatus(transfer.state);
+    if (transfer.info != null && transfer.info.dataCount != null) entry.children[3].setAttribute("data-original-title", generateSize(transfer.info.dataCount) + (transfer.type == 0 ? " Uploaded" : " Downloaded"));
+    if (transfer.info != null && transfer.info.progress != null && transfer.info.speed != null) entry.children[4].children[0].children[0].innerText = transfer.info.progress+"%" + (transfer.complete == true ? "" : " - "+generateSize(transfer.info.speed)+"/s");
+    if (transfer.info != null && transfer.info.progress != null) entry.children[4].children[0].children[1].setAttribute("style","width: "+transfer.info.progress+"%;");
+    if (transfer.info != null && transfer.info.est != null) entry.children[4].children[0].setAttribute("data-original-title", (transfer.complete == true ? "" : transfer.info.est));
+
+    if (transfer.state != null && btnStates[transfer.state] != null && btnStates[transfer.state][0]) entry.children[5].children[0].classList.remove("disabled");
+    else entry.children[5].children[0].classList.add("disabled");
+
+    if (transfer.state != null && btnStates[transfer.state] != null && btnStates[transfer.state][1]) entry.children[5].children[1].classList.remove("disabled");
+    else entry.children[5].children[1].classList.add("disabled");
+
+    if (transfer.state != null && btnStates[transfer.state] != null && btnStates[transfer.state][2]) entry.children[5].children[2].classList.remove("disabled");
+    else entry.children[5].children[2].classList.add("disabled");
+
+    if (transfer.state != null && btnStates[transfer.state] != null && btnStates[transfer.state][3]) entry.children[5].children[3].classList.remove("disabled");
+    else entry.children[5].children[3].classList.add("disabled");
+
+  }
+
+  var btnStates = {
+    "7": [false, false, false, true],
+    "6": [],
+    "5": [false, true, false, true],
+    "4": [],
+    "3": [false, false, true, true],
+    "2": [false, false, true, true],
+    "1": [false, true, false, true],
+    "0": [true, false, false, true],
+    "-1": [false, false, false, true],
+    "-2": [false, false, false, true]
+  }
+
+  var stateTranslations = {
+    "7": "Transfer Completed",
+    "6": "Transfer Canceled",
+    "5": "User Stopped",
+    "4": "Stopping",
+    "3": "Transfer in Progress",
+    "2": "Starting Transfer",
+    "1": "Waiting",
+    "0": "Transfer Initalized",
+    "-1": "Communicating With Peer",
+    "-2": "Peer IDENT Timeout",
+    "-3": "Waiting for network",
+    "-4": "Transer ERR"
+  }
+
+  //transfer page entry
+  function createTransferEntry (transfer) {
+    if (document.getElementById("ate"+transfer.id) != null) return;
+    var transfers = document.getElementById("transferRows");
+    var entryCont = document.createElement("div");
+    entryCont.setAttribute("id", "ate"+transfer.id);
+    entryCont.setAttribute("state", transfer.state);
+    entryCont.classList.add("row", "row-entry");
+
+    var checkboxCont = document.createElement("div");
+    checkboxCont.classList.add("col-sm-1", "plus");
+
+    var labelCont = document.createElement("label");
+    labelCont.classList.add("container");
+
+    var checkboxInput = document.createElement("input");
+    checkboxInput.setAttribute("type", "checkbox");
+    checkboxInput.addEventListener('input', checkBox);
+    if (document.getElementById("selectAllCheck").checked) checkboxInput.setAttribute("checked", "");
+    checkboxInput.addEventListener('propertychange', checkBox);
+
+    labelCont.appendChild(checkboxInput);
+
+    var checkboxspan = document.createElement("span");
+    checkboxspan.classList.add("checkmark");
+    labelCont.appendChild(checkboxspan);
+    checkboxCont.appendChild(labelCont);
+    entryCont.appendChild(checkboxCont);
+
+    var filename = document.createElement("div");
+    filename.classList.add("col-sm-2", "filename");
+    filename.innerText = transfer.name;
+    entryCont.appendChild(filename);
+
+    var type = document.createElement("div");
+    type.classList.add("col-sm-1", "tType");
+    type.innerText = transfer.type == 0 ? "Upload" : "Download";
+    entryCont.appendChild(type);
+
+    var machineID = document.createElement("div");
+    machineID.classList.add("col-sm-2", "tuuid");
+    machineID.innerText = transfer.type == 0 ? transfer.destination : transfer.source;
+    machineID.setAttribute("data-toggle", "tooltip");
+    machineID.setAttribute("data-placement", "bottom");
+    machineID.setAttribute("data-original-title", transfer.type == 0 ? transfer.destination : transfer.source);
+    entryCont.appendChild(machineID);
+
+    var statusCont = document.createElement("div");
+    statusCont.classList.add("col-sm-2", "tstatus");
+    var mid = transfer.type == 0 ? transfer.destination : transfer.source;
+    statusCont.setAttribute("onClick", "tabChange(document.getElementById('nav"+mid+"'))");
+
+    var statusSpan = document.createElement("span");
+    statusSpan.innerText = translateStatus(transfer.state);
+    statusCont.appendChild(statusSpan);
+    entryCont.appendChild(statusCont);
+
+    var size = document.createElement("div");
+    size.classList.add("col-sm-1", "size");
+    size.setAttribute("data-toggle", "tooltip");
+    size.setAttribute("data-placement", "bottom");
+    size.setAttribute("data-original-title", transfer.type == 0 ? "0 MB Uploaded" : "0 MB Downloaded");
+    size.innerText = generateSize(transfer.size);
+    entryCont.appendChild(size);
+
+    var progressCont = document.createElement("div");
+    progressCont.classList.add("col-sm-3", "prog");
+    var progressDiv = document.createElement("div");
+    progressDiv.setAttribute("data-toggle", "tooltip");
+    progressDiv.setAttribute("data-placement", "bottom");
+    progressDiv.setAttribute("data-original-title", "Estimating Time..");
+    progressDiv.classList.add("progress");
+
+    var progressSpan = document.createElement("span");
+    progressSpan.innerText = (transfer.complete == true) ? "100%" : "0% - 0B/s";
+    progressDiv.appendChild(progressSpan);
+
+    var progress = document.createElement("div");
+    progress.classList.add("progress-bar");
+    progress.setAttribute("role", "progressbar");
+    progress.setAttribute("style", "width: " + ((transfer.complete == true) ? 100 : 0)+"%;");
+    progressDiv.appendChild(progress);
+
+    progressCont.appendChild(progressDiv);
+    entryCont.appendChild(progressCont);
+
+    transfers.appendChild(entryCont);
+    $('[data-toggle="tooltip"]').tooltip()
+
+  }
+
+  function updateTransferEntry (transfer) {
+    var entry = document.getElementById("ate"+transfer.id);
+    if (transfer.state != null) entry.setAttribute("state", transfer.state);
+    if (transfer.state != null) entry.children[4].children[0].innerText = translateStatus(transfer.state);
+    if (transfer.info != null && transfer.info.dataCount != null) entry.children[5].setAttribute("data-original-title", generateSize(transfer.info.dataCount) + (transfer.type == 0 ? " Uploaded" : " Downloaded"));
+    if (transfer.info != null && transfer.info.progress != null && transfer.info.speed != null) entry.children[6].children[0].children[0].innerText = transfer.info.progress+"%" + (transfer.complete == true ? "" : " - "+generateSize(transfer.info.speed)+"/s");
+    if (transfer.info != null && transfer.info.progress != null) entry.children[6].children[0].children[1].setAttribute("style","width: "+transfer.info.progress+"%;");
+    if (transfer.info != null && transfer.info.est != null) entry.children[6].children[0].setAttribute("data-original-title", (transfer.complete == true ? "" : transfer.info.est));
+  }
+
+  function updateTransferEntries (transfer) {
+    if (document.getElementById("pte"+transfer.id) == null && !ignoreTransferStates.includes(transfer.state)) createPTE(transfer);
+    if (document.getElementById("ate"+transfer.id) == null) createTransferEntry(transfer);
+
+    if (document.getElementById("pte"+transfer.id) != null) updatePTE(transfer);
+    if (document.getElementById("ate"+transfer.id) != null) updateTransferEntry(transfer);
+  }
+
+  $(function () {
+    $('[data-toggle="tooltip"]').tooltip()
+  });
+
+  function translateStatus (state) {
+    return stateTranslations[state];
+  }
+
+  function generateSize(a, b) {
+    if (0 == a) return "0 Bytes";
+    var c = 1000,
+      d = b || 2,
+      e = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"],
+      f = Math.floor(Math.log(a) / Math.log(c));
+    return parseFloat((a / Math.pow(c, f)).toFixed(d)) + " " + e[f]
+  }
+
+  //t.classList.contains("acceptButton")
+
+  function onload () {
+    $('#'+startAt).fadeIn(tabSpeed);
+    document.getElementById('nav'+startAt).classList.add("active");
+    activeTab = startAt;
+    $(function () {
+      $('[data-toggle="tooltip"]').tooltip()
+    });
+
+  }
+
+  function setUUIDToClipboard () {
+    clipboard.writeText(uuid.toString());
+  }
+
+  function tabChange (t) {
+    //if (t == null) return;
+    var tab = t.getAttribute("reveal");
+    if (document.getElementById('nav'+tab) == null || document.getElementById(tab) == null) return;
+    if (!activeTab) {
+      $('#'+tab).fadeIn(tabSpeed);
+      document.getElementById('nav'+tab).classList.add("active");
+    } else {
+      if (document.getElementById('nav'+activeTab) != null) document.getElementById('nav'+activeTab).classList.remove("active");
+      $('#'+activeTab).fadeOut(tabSpeed);
+      $('#'+tab).fadeIn(tabSpeed);
+      document.getElementById('nav'+tab).classList.add("active");
+      activeTab = tab;
+    }
+  }
+
+  </script>
+  <script src="index.js"></script>
+</html>
